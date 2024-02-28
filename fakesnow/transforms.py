@@ -850,6 +850,34 @@ def to_decimal(expression: exp.Expression) -> exp.Expression:
     return expression
 
 
+def try_to_decimal(expression: exp.Expression) -> exp.Expression:
+    """Transform try_to_decimal, try_to_number, try_to_numeric expressions from snowflake to duckdb.
+
+    See https://docs.snowflake.com/en/sql-reference/functions/try_to_decimal
+    """
+
+    if (
+        isinstance(expression, exp.Anonymous)
+        and isinstance(expression.this, str)
+        and expression.this.upper() in ["TRY_TO_DECIMAL", "TRY_TO_NUMBER", "TRY_TO_NUMERIC"]
+    ):
+        expressions: list[exp.Expression] = expression.expressions
+
+        if len(expressions) > 1 and expressions[1].is_string:
+            # see https://docs.snowflake.com/en/sql-reference/functions/to_decimal#arguments
+            raise NotImplementedError(f"{expression.this} with format argument")
+
+        precision = expressions[1] if len(expressions) > 1 else exp.Literal(this="38", is_string=False)
+        scale = expressions[2] if len(expressions) > 2 else exp.Literal(this="0", is_string=False)
+
+        return exp.TryCast(
+            this=expressions[0],
+            to=exp.DataType(this=exp.DataType.Type.DECIMAL, expressions=[precision, scale], nested=False, prefix=False),
+        )
+
+    return expression
+
+
 def to_timestamp(expression: exp.Expression) -> exp.Expression:
     """Convert to_timestamp(seconds) to timestamp without timezone (ie: TIMESTAMP_NTZ).
 
