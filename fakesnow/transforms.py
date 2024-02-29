@@ -543,6 +543,34 @@ def parse_json(expression: exp.Expression) -> exp.Expression:
     return expression
 
 
+def try_parse_json(expression: exp.Expression) -> exp.Expression:
+    """Convert tr_parse_json() to try_cast(... as JSON).
+
+    Example:
+        >>> import sqlglot
+        >>> sqlglot.parse_one("select try_parse_json('{}')").transform(parse_json).sql()
+        "SELECT TRY_CAST('{}' AS JSON)"
+    Args:
+        expression (exp.Expression): the expression that will be transformed.
+
+    Returns:
+        exp.Expression: The transformed expression.
+    """
+
+    if (
+        isinstance(expression, exp.Anonymous)
+        and isinstance(expression.this, str)
+        and expression.this.upper() == "TRY_PARSE_JSON"
+    ):
+        expressions = expression.expressions
+        return exp.TryCast(
+            this=expressions[0],
+            to=exp.DataType(this=exp.DataType.Type.JSON, nested=False),
+        )
+
+    return expression
+
+
 def regex_replace(expression: exp.Expression) -> exp.Expression:
     """Transform regex_replace expressions from snowflake to duckdb."""
 
