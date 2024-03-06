@@ -24,7 +24,6 @@ from fakesnow.transforms import (
     json_extract_precedence,
     object_construct,
     parse_json,
-    try_parse_json,
     random,
     regex_replace,
     regex_substr,
@@ -37,9 +36,10 @@ from fakesnow.transforms import (
     timestamp_ntz_ns,
     to_date,
     to_decimal,
-    try_to_decimal,
     to_timestamp,
     to_timestamp_ntz,
+    try_parse_json,
+    try_to_decimal,
     upper_case_unquoted_identifiers,
     values_columns,
 )
@@ -267,10 +267,12 @@ def test_object_construct() -> None:
 def test_parse_json() -> None:
     assert (
         sqlglot.parse_one("""insert into table1 (name) select parse_json('{"first":"foo", "last":"bar"}')""")
+        # TODO(selman): Noop
         .transform(parse_json)
         .sql(dialect="duckdb")
         == """INSERT INTO table1 (name) SELECT JSON('{"first":"foo", "last":"bar"}')"""
     )
+
 
 def test_try_parse_json() -> None:
     assert (
@@ -279,6 +281,7 @@ def test_try_parse_json() -> None:
         .sql(dialect="duckdb")
         == """INSERT INTO table1 (name) SELECT TRY_CAST('{"first":"foo", "last":"bar"}' AS JSON)"""
     )
+
 
 def test_random() -> None:
     e = sqlglot.parse_one("select random(420)").transform(random)

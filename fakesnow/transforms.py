@@ -517,6 +517,31 @@ def object_construct(expression: exp.Expression) -> exp.Expression:
     return expression
 
 
+# TODO(selman): sqlglot -21.1.0,21.1.2- seems to produce expected result without this
+# transformation;
+# SELECT PARSE_JSON('{}')
+#
+# Without transformation:
+#   Select(
+#       expressions=[
+#           ParseJSON(
+#               this=Column(
+#                   this=Identifier(this={}, quoted=True)
+#               )
+#           )
+#       ]
+#   )
+#
+# With transformation:
+#   Select(
+#       expressions=[
+#           ParseJSON(
+#               this=Column(
+#                   this=Identifier(this={}, quoted=True)
+#               )
+#           )
+#       ]
+#   )
 def parse_json(expression: exp.Expression) -> exp.Expression:
     """Convert parse_json() to json().
 
