@@ -979,6 +979,22 @@ def timestamp_ntz_ns(expression: exp.Expression) -> exp.Expression:
     return expression
 
 
+def current_timestamp(expression: exp.Expression) -> exp.Expression:
+    """Convert current_timestamp to CAST( current_timestamp AS TIMESTAMP ).
+
+    `current_timestamp` in DuckDB returns TIMESTAMP WITH TIME ZONE. With other
+    transformations, all timestamps are handled as TIMESTAMP.
+    """
+
+    if isinstance(expression, exp.CurrentTimestamp):
+        return exp.Cast(
+            this=expression,
+            to=exp.DataType(this=exp.DataType.Type.TIMESTAMP, nested=False, prefix=False),
+        )
+
+    return expression
+
+
 def array_agg_within_group(expression: exp.Expression) -> exp.Expression:
     """Convert ARRAY_AGG(<expr>) WITHIN GROUP (<order-by-clause>) to ARRAY_AGG( <expr> <order-by-clause> )
 
