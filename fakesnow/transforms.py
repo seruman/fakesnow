@@ -459,6 +459,61 @@ def json_extract_precedence(expression: exp.Expression) -> exp.Expression:
     return expression
 
 
+def trim_json_extract(expression: exp.Expression) -> exp.Expression:
+    """Return raw unquoted string when trimming json extraction.
+
+    In Snowflake, the TRIM function casts input to VARCHAR implicitly. Applying
+    `CAST` to `->` operator in DuckDB leaves the string quoted, therefore `->>`
+    aka `json_extract_string` is used to extract the string without quotes.
+
+    Snowflake;
+        SELECT
+            JSON_PARSE('{"a": "b"}') as data,
+            TRIM(data:a) as trimmed
+        ;
+        TRIMMED: b
+
+    DuckDB;
+        SELECT
+            JSON('{"a": "b"}') as data,
+            TRIM( data -> '$.a' ) as trimmed,
+            TRIM( CAST( data -> '$.a' AS VARCHAR ) ) as cast_trimmed
+
+        ;
+        TRIMMED: "b"
+        CAST_TRIMMED: "b"
+
+    After transformation;
+        SELECT
+            JSON('{"a": "b"}') as data,
+            TRIM( data ->> '$.a' ) as trimmed
+        ;
+        TRIMMED: b
+    """
+
+    def _is_json_extract(expression: exp.Expression) -> bool:
+        return (
+            isinstance(expression, exp.JSONExtract)
+            and (je := expression)
+            and (path := je.expression)
+            and isinstance(path, exp.JSONPath)
+        )
+
+    if isinstance(expression, exp.Trim):
+        if _is_json_extract(expression.this):
+            je = expression.this
+            path = je.expression
+
+            return exp.Trim(this=exp.JSONExtractScalar(this=je.this, expression=path))
+
+        if (paren := expression.this) and isinstance(paren, exp.Paren) and _is_json_extract(paren.this):
+            je = paren.this
+            path = je.expression
+            return exp.Trim(this=exp.Paren(this=exp.JSONExtractScalar(this=je.this, expression=path)))
+
+    return expression
+
+
 def random(expression: exp.Expression) -> exp.Expression:
     """Convert random() and random(seed).
 

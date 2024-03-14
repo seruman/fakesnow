@@ -40,6 +40,7 @@ from fakesnow.transforms import (
     to_decimal,
     to_timestamp,
     to_timestamp_ntz,
+    trim_json_extract,
     try_parse_json,
     try_to_decimal,
     upper_case_unquoted_identifiers,
@@ -254,6 +255,40 @@ def test_json_extract_precedence() -> None:
     )
 
 
+def test_trim_json_extract() -> None:
+    assert (
+        sqlglot.parse_one(
+            """select trim(data:field) from table1""",
+            read="snowflake",
+        )
+        .transform(trim_json_extract)
+        .sql(dialect="duckdb")
+        == """SELECT TRIM(data ->> '$.field') FROM table1"""
+    )
+
+
+    assert (
+        sqlglot.parse_one(
+            """select trim(data:field:nestedfield) from table1""",
+            read="snowflake",
+        )
+        .transform(trim_json_extract)
+        .sql(dialect="duckdb")
+        == """SELECT TRIM(data -> '$.field' ->> '$.nestedfield') FROM table1"""
+    )
+
+
+    assert (
+        sqlglot.parse_one(
+            """select trim((data:field)) from table1""",
+            read="snowflake",
+        )
+        .transform(trim_json_extract)
+        .sql(dialect="duckdb")
+        == """SELECT TRIM((data ->> '$.field')) FROM table1"""
+    )
+
+
 def test_object_construct() -> None:
     assert (
         sqlglot.parse_one(
@@ -438,14 +473,12 @@ def test_current_timestamp() -> None:
         == "SELECT CAST(CURRENT_TIMESTAMP AS TIMESTAMP)"
     )
 
-
     assert (
         sqlglot.parse_one("SELECT DATEADD(DAY, -7, current_timestamp)", read="snowflake")
         .transform(current_timestamp)
         .sql(dialect="duckdb")
         == "SELECT CAST(CURRENT_TIMESTAMP AS TIMESTAMP) + INTERVAL (-7) DAY"
     )
-
 
     assert (
         sqlglot.parse_one("SELECT current_timestamp::DATE", read="snowflake")
