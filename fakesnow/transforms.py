@@ -991,12 +991,26 @@ def to_timestamp(expression: exp.Expression) -> exp.Expression:
 
     See https://docs.snowflake.com/en/sql-reference/functions/to_timestamp
     """
-
     if isinstance(expression, exp.UnixToTime):
         return exp.Cast(
             this=expression,
             to=exp.DataType(this=exp.DataType.Type.TIMESTAMP, nested=False, prefix=False),
         )
+
+    # NOTE(selman): sqlglot parses `to_timetamp(<non-literal-expression>)` as
+    # TimeStrToTime and transpiles it to `CAST(col AS TIMESTAMP)`. In our case
+    # all `to_timestamp(<non-literal-expression>)` calls are made with a
+    # NUMERIC value, therefore needs to be transpiled to
+    # `TO_TIMESTAMP(<numeric-expression>)` in DuckDB.
+    # `TO_TIMESTAMP` returns TIMESTAMPTZ, as above, needs to be cast to TIMESTAMP.
+    if isinstance(expression, exp.TimeStrToTime) and not isinstance(expression.this, exp.Literal):
+        # we got a non-literal expression, so we need to transpile it to a UnixToTime
+        e = exp.UnixToTime(this=expression.this)
+        return exp.Cast(
+            this=e,
+            to=exp.DataType(this=exp.DataType.Type.TIMESTAMP, nested=False, prefix=False),
+        )
+
     return expression
 
 

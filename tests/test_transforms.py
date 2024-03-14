@@ -458,6 +458,14 @@ def test_to_timestamp() -> None:
         == "SELECT CAST(TO_TIMESTAMP(0) AS TIMESTAMP)"
     )
 
+    assert (
+        sqlglot.parse_one("SELECT to_timestamp(col) from table", read="snowflake")
+        .transform(to_timestamp)
+        .sql(dialect="duckdb")
+        == "SELECT CAST(TO_TIMESTAMP(col) AS TIMESTAMP) FROM table"
+    )
+
+
 def test_current_timestamp() -> None:
     assert (
         sqlglot.parse_one("SELECT current_timestamp", read="snowflake")
