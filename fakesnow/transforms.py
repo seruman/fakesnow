@@ -1165,7 +1165,6 @@ def dateadd_day_literal_date_cast(expression: exp.Expression) -> exp.Expression:
         return expression
 
     if not isinstance(dateadd.this, exp.Cast):
-        print(dateadd.this)
         return expression
 
     cast = dateadd.this

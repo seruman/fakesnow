@@ -545,7 +545,6 @@ def test_values_columns() -> None:
 
 
 def test_dateadd_literal_date_cast() -> None:
-    print()
     assert (
         sqlglot.parse_one("SELECT DATEADD(DAY, 3, '2023-03-03'::DATE) as D", read="snowflake")
         .transform(dateadd_day_literal_date_cast)
@@ -565,8 +564,7 @@ def test_dateadd_literal_date_cast() -> None:
 
 
 def test_dateadd_literal_date_string() -> None:
-    print()
-    assert(
+    assert (
         sqlglot.parse_one("SELECT DATEADD(DAY, 3, '2023-03-03') as D", read="snowflake")
         .transform(dateadd_literal_date_string)
         .sql(dialect="duckdb")
