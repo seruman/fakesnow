@@ -9,6 +9,8 @@ from fakesnow.transforms import (
     array_size,
     create_database,
     current_timestamp,
+    dateadd_day_literal_date_cast,
+    dateadd_literal_date_string,
     describe_table,
     drop_schema_cascade,
     extract_comment_on_columns,
@@ -266,7 +268,6 @@ def test_trim_json_extract() -> None:
         == """SELECT TRIM(data ->> '$.field') FROM table1"""
     )
 
-
     assert (
         sqlglot.parse_one(
             """select trim(data:field:nestedfield) from table1""",
@@ -276,7 +277,6 @@ def test_trim_json_extract() -> None:
         .sql(dialect="duckdb")
         == """SELECT TRIM(data -> '$.field' ->> '$.nestedfield') FROM table1"""
     )
-
 
     assert (
         sqlglot.parse_one(
@@ -541,4 +541,34 @@ def test_values_columns() -> None:
     assert (
         sqlglot.parse_one("INSERT INTO cities VALUES ('Amsterdam', 1)").transform(values_columns).sql()
         == "INSERT INTO cities VALUES ('Amsterdam', 1)"
+    )
+
+
+def test_dateadd_literal_date_cast() -> None:
+    print()
+    assert (
+        sqlglot.parse_one("SELECT DATEADD(DAY, 3, '2023-03-03'::DATE) as D", read="snowflake")
+        .transform(dateadd_day_literal_date_cast)
+        .sql(dialect="duckdb")
+        == "SELECT CAST(CAST('2023-03-03' AS DATE) + INTERVAL 3 DAY AS DATE) AS D"
+    )
+
+    assert (
+        sqlglot.parse_one(
+            "SELECT DATEADD(day, ROW_NUMBER() OVER (ORDER BY 1) - 1, CAST('2023-04-02' AS DATE))",
+            read="snowflake",
+        )
+        .transform(dateadd_day_literal_date_cast)
+        .sql(dialect="duckdb")
+        == "SELECT CAST(CAST('2023-04-02' AS DATE) + INTERVAL (ROW_NUMBER() OVER (ORDER BY 1) - 1) DAY AS DATE)"
+    )
+
+
+def test_dateadd_literal_date_string() -> None:
+    print()
+    assert(
+        sqlglot.parse_one("SELECT DATEADD(DAY, 3, '2023-03-03') as D", read="snowflake")
+        .transform(dateadd_literal_date_string)
+        .sql(dialect="duckdb")
+        == "SELECT CAST('2023-03-03' AS DATE) + INTERVAL 3 DAY AS D"
     )

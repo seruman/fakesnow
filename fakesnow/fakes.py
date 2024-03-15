@@ -202,6 +202,8 @@ class FakeSnowflakeCursor:
             .transform(transforms.random)
             .transform(transforms.identifier)
             .transform(transforms.array_agg_within_group)
+            .transform(transforms.dateadd_day_literal_date_cast)
+            .transform(transforms.dateadd_literal_date_string)
             .transform(lambda e: transforms.show_schemas(e, self._conn.database))
             .transform(lambda e: transforms.show_objects_tables(e, self._conn.database))
             .transform(lambda e: transforms.show_primary_keys(e, self._conn.database))

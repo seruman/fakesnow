@@ -1145,6 +1145,75 @@ def upper_case_unquoted_identifiers(expression: exp.Expression) -> exp.Expressio
     return expression
 
 
+def dateadd_day_literal_date_cast(expression: exp.Expression) -> exp.Expression:
+    """Cast result of DATEADD to DATE if the given expression is cast to date from a string literal and unit is DAY.
+
+    Snowflake;
+        SELECT DATEADD(DAY, 3, '2023-03-03'::DATE) as D;
+            D: 2023-03-06 (DATE)
+    DuckDB;
+        SELECT CAST('2023-03-03' AS DATE) + INTERVAL 3 DAY AS D
+        D: 2023-03-06 00:00:00 (TIMESTAMP)
+    """
+
+    if not isinstance(expression, exp.DateAdd):
+        return expression
+
+    dateadd = expression
+
+    if dateadd.unit is None or dateadd.unit.this != "DAY":
+        return expression
+
+    if not isinstance(dateadd.this, exp.Cast):
+        print(dateadd.this)
+        return expression
+
+    cast = dateadd.this
+
+    if not isinstance(cast.this, exp.Literal) or not cast.this.is_string or cast.to.this != exp.DataType.Type.DATE:
+        return expression
+
+    return exp.Cast(
+        this=expression,
+        to=exp.DataType(this=exp.DataType.Type.DATE, nested=False, prefix=False),
+    )
+
+
+def dateadd_literal_date_string(expression: exp.Expression) -> exp.Expression:
+    """TODO(selman):: TBD
+    Snowflake;
+        SELECT DATEADD(DAY, 3, '2023-03-03') AS D;
+            D: 2023-03-06 00:00:00.000 +0000 (TIMESTAMP_{NTZ,LTZ})
+
+    Want:
+        SELECT '2023-03-03'::DATE + INTERVAL 3 DAY AS D
+            D: 2023-03-06 00:00:00 (TIMESTAMP)
+    """
+
+    # regardless of unit, if expression is a string literal, cast it to timestamp
+
+    if not isinstance(expression, exp.DateAdd):
+        return expression
+
+    dateadd = expression
+
+    if not isinstance(dateadd.this, exp.Literal) or not dateadd.this.is_string:
+        return expression
+
+    literal = dateadd.this
+
+    new_dateadd = dateadd.copy()
+    new_dateadd.set(
+        "this",
+        exp.Cast(
+            this=literal,
+            to=exp.DataType(this=exp.DataType.Type.DATE, nested=False, prefix=False),
+        ),
+    )
+
+    return new_dateadd
+
+
 def values_columns(expression: exp.Expression) -> exp.Expression:
     """Support column1, column2 expressions in VALUES.
 
