@@ -11,6 +11,7 @@ from fakesnow.transforms import (
     current_timestamp,
     dateadd_day_literal_date_cast,
     dateadd_literal_date_string,
+    datediff_literal_cast,
     describe_table,
     drop_schema_cascade,
     extract_comment_on_columns,
@@ -569,4 +570,20 @@ def test_dateadd_literal_date_string() -> None:
         .transform(dateadd_literal_date_string)
         .sql(dialect="duckdb")
         == "SELECT CAST('2023-03-03' AS DATE) + INTERVAL 3 DAY AS D"
+    )
+
+
+def test_datediff_literal_cast() -> None:
+    assert (
+        sqlglot.parse_one("SELECT DATEDIFF(DAY, somecolumn, '2023-04-02') AS D", read="snowflake")
+        .transform(datediff_literal_cast)
+        .sql(dialect="duckdb")
+        == "SELECT DATE_DIFF('DAY', somecolumn, CAST('2023-04-02' AS TIMESTAMP)) AS D"
+    )
+
+    assert (
+        sqlglot.parse_one("SELECT DATEDIFF(DAY, '2023-04-02', somecolumn) AS D", read="snowflake")
+        .transform(datediff_literal_cast)
+        .sql(dialect="duckdb")
+        == "SELECT DATE_DIFF('DAY', CAST('2023-04-02' AS TIMESTAMP), somecolumn) AS D"
     )

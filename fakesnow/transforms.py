@@ -1189,8 +1189,6 @@ def dateadd_literal_date_string(expression: exp.Expression) -> exp.Expression:
             D: 2023-03-06 00:00:00 (TIMESTAMP)
     """
 
-    # regardless of unit, if expression is a string literal, cast it to timestamp
-
     if not isinstance(expression, exp.DateAdd):
         return expression
 
@@ -1201,6 +1199,8 @@ def dateadd_literal_date_string(expression: exp.Expression) -> exp.Expression:
 
     literal = dateadd.this
 
+    # Regardless of unit, if expression is a string literal, cast it to
+    # timestamp
     new_dateadd = dateadd.copy()
     new_dateadd.set(
         "this",
@@ -1211,6 +1211,60 @@ def dateadd_literal_date_string(expression: exp.Expression) -> exp.Expression:
     )
 
     return new_dateadd
+
+
+def datediff_literal_cast(expression: exp.Expression) -> exp.Expression:
+    """TODO(selman):: TBD
+    Casts string literal operands of DATEDIFF to TIMESTAMP.
+
+    DateDiff(
+        this=Literal(this=2023-04-02, is_string=True),
+        expression=Column(
+            this=Identifier(this=LAST_PURCHASE_DATE, quoted=False)
+        ),
+        unit=Var(this=DAY)
+    )
+
+
+    DateDiff(
+        this=Column(
+            this=Identifier(this=LAST_PURCHASE_DATE, quoted=False)
+        ),
+        expression=Literal(this=2023-04-02, is_string=True),
+        unit=Var(this=DAY)
+    )
+
+    DateDiff(
+        this=Literal(this=2203-04-02, is_string=True),
+        expression=Literal(this=2023-04-02, is_string=True),
+        unit=Var(this=DAY)
+    )
+    """
+
+    if not isinstance(expression, exp.DateDiff):
+        return expression
+
+    datediff = expression
+    op1 = datediff.this.copy()
+    op2 = datediff.expression.copy()
+
+    if isinstance(op1, exp.Literal) and op1.is_string:
+        op1 = exp.Cast(
+            this=op1,
+            to=exp.DataType(this=exp.DataType.Type.TIMESTAMP, nested=False, prefix=False),
+        )
+
+    if isinstance(op2, exp.Literal) and op2.is_string:
+        op2 = exp.Cast(
+            this=op2,
+            to=exp.DataType(this=exp.DataType.Type.TIMESTAMP, nested=False, prefix=False),
+        )
+
+    new_datediff = datediff.copy()
+    new_datediff.set("this", op1)
+    new_datediff.set("expression", op2)
+
+    return new_datediff
 
 
 def values_columns(expression: exp.Expression) -> exp.Expression:
