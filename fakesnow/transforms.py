@@ -1148,6 +1148,77 @@ def upper_case_unquoted_identifiers(expression: exp.Expression) -> exp.Expressio
     return expression
 
 
+def timeadd(expression: exp.Expression) -> exp.Expression:
+    """TIMEADD is an alias for DATEADD
+    See: https://docs.snowflake.com/en/sql-reference/functions/timeadd
+    """
+
+    # SELECT
+    #   TIMEADD('hour', 7, CURRENT_DATE)
+    # Select(
+    #   expressions=[
+    #     Anonymous(
+    #       this=timeadd,
+    #       expressions=[
+    #         Literal(this=hour, is_string=True),
+    #         Literal(this=7, is_string=False),
+    #         CurrentDate()])])
+
+    # SELECT
+    #   TIMEADD("hour", 7, CURRENT_DATE)
+    # Select(
+    #   expressions=[
+    #     Anonymous(
+    #       this=timeadd,
+    #       expressions=[
+    #         Column(
+    #           this=Identifier(this=hour, quoted=True)),
+    #         Literal(this=7, is_string=False),
+    #         CurrentDate()])])
+
+    # SELECT
+    #   TIMEADD(HOUR, 7, CURRENT_DATE)
+    # Select(
+    #   expressions=[
+    #     Anonymous(
+    #       this=timeadd,
+    #       expressions=[
+    #         Column(
+    #           this=Identifier(this=HOUR, quoted=False)),
+    #         Literal(this=7, is_string=False),
+    #         CurrentDate()])])
+
+    # SELECT
+    #   CURRENT_DATE + INTERVAL 7 HOUR
+    # Select(
+    #   expressions=[
+    #     DateAdd(
+    #       this=CurrentDate(),
+    #       expression=Literal(this=7, is_string=False),
+    #       unit=Var(this=HOUR))])
+
+    if not (
+        isinstance(expression, exp.Anonymous)
+        and isinstance(expression.this, str)
+        and expression.this.upper() == "TIMEADD"
+    ):
+        return expression
+
+    if len(expression.expressions) != 3:
+        return expression
+
+    unit, value, date = expression.expressions.copy()
+
+    if isinstance(unit, exp.Literal):
+        unit = exp.Var(this=unit.this.upper())
+    elif isinstance(unit, exp.Column) and isinstance(unit.this, exp.Identifier):
+        unit = exp.Var(this=unit.this.this.upper())
+    else:
+        return expression
+
+    return exp.DateAdd(this=date, expression=value, unit=unit)
+
+
 def dateadd_literal_date_cast(expression: exp.Expression) -> exp.Expression:
     """Cast result of DATEADD to DATE if the given expression is cast to date
     from a string literal and unit is either DAY or WEEK.

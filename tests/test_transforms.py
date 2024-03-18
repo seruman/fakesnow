@@ -38,6 +38,7 @@ from fakesnow.transforms import (
     show_objects_tables,
     show_schemas,
     tag,
+    timeadd,
     timestamp_ntz_ns,
     to_date,
     to_decimal,
@@ -562,6 +563,52 @@ def test_values_columns() -> None:
     assert (
         sqlglot.parse_one("INSERT INTO cities VALUES ('Amsterdam', 1)").transform(values_columns).sql()
         == "INSERT INTO cities VALUES ('Amsterdam', 1)"
+    )
+
+
+def test_timeadd() -> None:
+    # TODO(selman)::
+    assert (
+        sqlglot.parse_one("SELECT timeadd(hour, 3, col)", read="snowflake").transform(timeadd).sql(dialect="duckdb")
+        == "SELECT col + INTERVAL 3 HOUR"
+    )
+
+    assert (
+        sqlglot.parse_one("SELECT timeadd(HOUR, 3, col)", read="snowflake").transform(timeadd).sql(dialect="duckdb")
+        == "SELECT col + INTERVAL 3 HOUR"
+    )
+
+    assert (
+        sqlglot.parse_one("SELECT timeadd('hour', 3, col)", read="snowflake").transform(timeadd).sql(dialect="duckdb")
+        == "SELECT col + INTERVAL 3 HOUR"
+    )
+
+    assert (
+        sqlglot.parse_one("SELECT timeadd('HOUR', 3, col)", read="snowflake").transform(timeadd).sql(dialect="duckdb")
+        == "SELECT col + INTERVAL 3 HOUR"
+    )
+
+    assert (
+        sqlglot.parse_one("""SELECT timeadd("HOUR", 3, col)""", read="snowflake")
+        .transform(timeadd)
+        .sql(dialect="duckdb")
+        == "SELECT col + INTERVAL 3 HOUR"
+    )
+
+    assert (
+        # NOTE(selman): dateadd_literal* transformation are not applied yet.
+        sqlglot.parse_one("""SELECT timeadd(week, 3, '2023-01-01')""", read="snowflake")
+        .transform(timeadd)
+        .sql(dialect="duckdb")
+        == "SELECT '2023-01-01' + (7 * INTERVAL 3 DAY)"
+    )
+
+    assert (
+        sqlglot.parse_one("""SELECT timeadd(hour, 3, '2023-01-01')""", read="snowflake")
+        .transform(timeadd)
+        .transform(dateadd_literal_date_string)
+        .sql(dialect="duckdb")
+        == "SELECT CAST('2023-01-01' AS DATE) + INTERVAL 3 HOUR"
     )
 
 
