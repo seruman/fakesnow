@@ -9,7 +9,7 @@ from fakesnow.transforms import (
     array_size,
     create_database,
     current_timestamp,
-    dateadd_day_literal_date_cast,
+    dateadd_literal_date_cast,
     dateadd_literal_date_string,
     datediff_literal_cast,
     describe_table,
@@ -568,7 +568,7 @@ def test_values_columns() -> None:
 def test_dateadd_literal_date_cast() -> None:
     assert (
         sqlglot.parse_one("SELECT DATEADD(DAY, 3, '2023-03-03'::DATE) as D", read="snowflake")
-        .transform(dateadd_day_literal_date_cast)
+        .transform(dateadd_literal_date_cast)
         .sql(dialect="duckdb")
         == "SELECT CAST(CAST('2023-03-03' AS DATE) + INTERVAL 3 DAY AS DATE) AS D"
     )
@@ -578,9 +578,26 @@ def test_dateadd_literal_date_cast() -> None:
             "SELECT DATEADD(day, ROW_NUMBER() OVER (ORDER BY 1) - 1, CAST('2023-04-02' AS DATE))",
             read="snowflake",
         )
-        .transform(dateadd_day_literal_date_cast)
+        .transform(dateadd_literal_date_cast)
         .sql(dialect="duckdb")
         == "SELECT CAST(CAST('2023-04-02' AS DATE) + INTERVAL (ROW_NUMBER() OVER (ORDER BY 1) - 1) DAY AS DATE)"
+    )
+
+    assert (
+        sqlglot.parse_one("SELECT DATEADD(WEEK, 3, '2023-03-03'::DATE) as D", read="snowflake")
+        .transform(dateadd_literal_date_cast)
+        .sql(dialect="duckdb")
+        == "SELECT CAST(CAST('2023-03-03' AS DATE) + (7 * INTERVAL 3 DAY) AS DATE) AS D"
+    )
+
+    assert (
+        sqlglot.parse_one(
+            "SELECT DATEADD(week, ROW_NUMBER() OVER (ORDER BY 1) - 1, CAST('2023-04-02' AS DATE))",
+            read="snowflake",
+        )
+        .transform(dateadd_literal_date_cast)
+        .sql(dialect="duckdb")
+        == "SELECT CAST(CAST('2023-04-02' AS DATE) + (7 * INTERVAL (ROW_NUMBER() OVER (ORDER BY 1) - 1) DAY) AS DATE)"
     )
 
 

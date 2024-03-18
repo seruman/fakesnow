@@ -1148,8 +1148,9 @@ def upper_case_unquoted_identifiers(expression: exp.Expression) -> exp.Expressio
     return expression
 
 
-def dateadd_day_literal_date_cast(expression: exp.Expression) -> exp.Expression:
-    """Cast result of DATEADD to DATE if the given expression is cast to date from a string literal and unit is DAY.
+def dateadd_literal_date_cast(expression: exp.Expression) -> exp.Expression:
+    """Cast result of DATEADD to DATE if the given expression is cast to date
+    from a string literal and unit is either DAY or WEEK.
 
     Snowflake;
         SELECT DATEADD(DAY, 3, '2023-03-03'::DATE) as D;
@@ -1164,7 +1165,7 @@ def dateadd_day_literal_date_cast(expression: exp.Expression) -> exp.Expression:
 
     dateadd = expression
 
-    if dateadd.unit is None or dateadd.unit.this != "DAY":
+    if dateadd.unit is None or dateadd.unit.this not in {"DAY", "WEEK"}:
         return expression
 
     if not isinstance(dateadd.this, exp.Cast):
