@@ -266,6 +266,16 @@ def test_json_extract_cast_as_varchar() -> None:
         == "SELECT col.data ->> '$.field'"
     )
 
+    assert (
+        sqlglot.parse_one(
+            """select cast(data:app_instance_id as TEXT), cast(data:app_instance_id as varchar)""",
+            read="snowflake",
+        )
+        .transform(json_extract_cast_as_varchar)
+        .sql(dialect="duckdb")
+        == """SELECT data ->> '$.app_instance_id', data ->> '$.app_instance_id'"""
+    )
+
 
 def test_json_extract_precedence() -> None:
     assert (
