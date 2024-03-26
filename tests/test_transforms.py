@@ -347,14 +347,7 @@ def test_object_construct() -> None:
 
     assert (
         sqlglot.parse_one(
-            """
-        SELECT
-        OBJECT_CONSTRUCT(
-            'k1', 'v1',
-            'k2', CASE WHEN ZEROIFNULL(col) + 30 > 0 THEN 'v2' ELSE NULL END,
-            NULL, 'nullkeyed',
-            'nullvalued', NULL
-        )""",
+            "SELECT OBJECT_CONSTRUCT( 'k1', 'v1', 'k2', CASE WHEN ZEROIFNULL(col) + 30 > 0 THEN 'v2' ELSE NULL END, NULL, 'nullkeyed', 'nullvalued', NULL)",  # noqa: E501
             read="snowflake",
         )
         .transform(object_construct)
