@@ -47,7 +47,6 @@ from fakesnow.transforms import (
     to_timestamp_ntz,
     to_variant,
     trim_cast_varchar,
-    trim_json_extract,
     try_parse_json,
     try_to_decimal,
     upper_case_unquoted_identifiers,
@@ -289,38 +288,6 @@ def test_json_extract_precedence() -> None:
         .transform(json_extract_precedence)
         .sql(dialect="duckdb")
         == """SELECT {'K1': {'K2': 1}} AS col WHERE (col -> '$.K1' -> '$.K2') > 0"""
-    )
-
-
-def test_trim_json_extract() -> None:
-    assert (
-        sqlglot.parse_one(
-            """select trim(data:field) from table1""",
-            read="snowflake",
-        )
-        .transform(trim_json_extract)
-        .sql(dialect="duckdb")
-        == """SELECT TRIM(data ->> '$.field') FROM table1"""
-    )
-
-    assert (
-        sqlglot.parse_one(
-            """select trim(data:field:nestedfield) from table1""",
-            read="snowflake",
-        )
-        .transform(trim_json_extract)
-        .sql(dialect="duckdb")
-        == """SELECT TRIM(data -> '$.field' ->> '$.nestedfield') FROM table1"""
-    )
-
-    assert (
-        sqlglot.parse_one(
-            """select trim((data:field)) from table1""",
-            read="snowflake",
-        )
-        .transform(trim_json_extract)
-        .sql(dialect="duckdb")
-        == """SELECT TRIM((data ->> '$.field')) FROM table1"""
     )
 
 
