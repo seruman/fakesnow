@@ -44,6 +44,8 @@ from fakesnow.transforms import (
     to_decimal,
     to_timestamp,
     to_timestamp_ntz,
+    to_variant,
+    trim_cast_varchar,
     trim_json_extract,
     try_parse_json,
     try_to_decimal,
@@ -712,4 +714,21 @@ def test_datediff_literal_cast() -> None:
         .transform(datediff_literal_cast)
         .sql(dialect="duckdb")
         == "SELECT DATE_DIFF('DAY', CAST('2023-04-02' AS TIMESTAMP), somecolumn) AS D"
+    )
+
+
+def test_trim_cast_varchar() -> None:
+    assert (
+        sqlglot.parse_one("SELECT TRIM(col) FROM table1").transform(trim_cast_varchar).sql(dialect="duckdb")
+        == "SELECT TRIM(CAST(col AS TEXT)) FROM table1"
+    )
+
+    assert (
+        sqlglot.parse_one("SELECT TRIM(col::varchar) FROM table1").transform(trim_cast_varchar).sql(dialect="duckdb")
+        == "SELECT TRIM(CAST(col AS TEXT)) FROM table1"
+    )
+
+    assert (
+        sqlglot.parse_one("SELECT TRIM(col::text) FROM table1").transform(trim_cast_varchar).sql(dialect="duckdb")
+        == "SELECT TRIM(CAST(col AS TEXT)) FROM table1"
     )

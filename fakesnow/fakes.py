@@ -182,6 +182,7 @@ class FakeSnowflakeCursor:
             .transform(transforms.json_extract_cased_as_varchar)
             .transform(transforms.json_extract_precedence)
             .transform(transforms.trim_json_extract)
+            .transform(transforms.trim_cast_varchar)
             .transform(transforms.flatten)
             .transform(transforms.regex_replace)
             .transform(transforms.regex_substr)
