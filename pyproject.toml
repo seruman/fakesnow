@@ -11,7 +11,15 @@ dependencies = [
     "duckdb~=0.10.0",
     "pyarrow",
     "snowflake-connector-python",
-    "sqlglot~=21.1.0",
+    # NOTE(selman):
+    #   json_extract precedence fix;
+    #   https://github.com/tobymao/sqlglot/issues/3068
+    #       https://github.com/tobymao/sqlglot/commit/c51b64fa6a437698fd8b347d98ffaf9fb543d2d5
+    #
+    #   array_join fixes;
+    #   https://github.com/tobymao/sqlglot/pull/3102
+    #   https://github.com/tobymao/sqlglot/pull/3120
+    "sqlglot==22.4.0",
 ]
 
 [project.urls]
