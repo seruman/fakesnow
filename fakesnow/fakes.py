@@ -432,6 +432,14 @@ class FakeSnowflakeCursor:
                 return ResultMetadata(
                     name=column_name, type_code=0, display_size=None, internal_size=None, precision=precision, scale=scale, is_nullable=True    # noqa: E501
                 )
+            elif column_type == "HUGEINT":
+                # NOTE(selman): HUGEINT is INT128, but Snowflake does not have
+                # an equivalent type or any type that has the same range. If
+                # value can be representable in an `int` in Python, then it is
+                # good for us.
+                return ResultMetadata(
+                    name=column_name, type_code=0, display_size=None, internal_size=None, precision=38, scale=0, is_nullable=True               # noqa: E501
+                )
             elif column_type == "VARCHAR":
                 # TODO: fetch internal_size from varchar size
                 return ResultMetadata(
