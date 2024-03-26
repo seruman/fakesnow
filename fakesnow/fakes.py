@@ -197,7 +197,17 @@ class FakeSnowflakeCursor:
             .transform(transforms.timestamp_ntz_ns)
             .transform(transforms.float_to_double)
             .transform(transforms.integer_precision)
-            .transform(transforms.extract_text_length)
+            # TODO(selman): kinda broken, does not work with queries like;
+            # create table some_table as (
+            #   select
+            #     r1 as c1,
+            #     cast(
+            #       cast(c1 as TEXT) || '-' || cast(c2 as TEXT) as TEXT
+            #     ) as key_id
+            #   from
+            #     raw_data
+            # )
+            # .transform(transforms.extract_text_length)
             .transform(transforms.sample)
             .transform(transforms.array_size)
             .transform(transforms.random)
