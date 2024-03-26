@@ -485,7 +485,7 @@ class FakeSnowflakeCursor:
                 )
             else:
                 # TODO handle more types
-                raise NotImplementedError(f"for column type {column_type}")
+                raise NotImplementedError(f"for column {column_name}, type {column_type}")
 
         # fmt: on
 
