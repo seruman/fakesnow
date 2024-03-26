@@ -934,13 +934,19 @@ def to_date(expression: exp.Expression) -> exp.Expression:
         exp.Expression: The transformed expression.
     """
 
-    if (
-        isinstance(expression, exp.Anonymous)
-        and isinstance(expression.this, str)
-        and expression.this.upper() == "TO_DATE"
-    ):
+    def _is_to_date(expression: exp.Expression) -> bool:
+        return (
+            isinstance(expression, exp.Anonymous)
+            and isinstance(expression.this, str)
+            and expression.this.upper() == "TO_DATE"
+        )
+
+    if _is_to_date(expression):
+        # NOTE(selman):  There're cases were dbt generated queries would have TO_DATE(TO_DATE(...)).
+        e = expression.expressions[0] if _is_to_date(expression.expressions[0]) else expression
+        print("GOT TO_DATE")
         return exp.Cast(
-            this=expression.expressions[0],
+            this=e.expressions[0],
             to=exp.DataType(this=exp.DataType.Type.DATE, nested=False, prefix=False),
         )
     return expression

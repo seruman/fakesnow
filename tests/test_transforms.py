@@ -496,6 +496,11 @@ def test_to_date() -> None:
         == "SELECT CAST(TO_TIMESTAMP(0) AS DATE)"
     )
 
+    assert (
+        sqlglot.parse_one("SELECT to_date(to_date(to_timestamp(0)))").transform(to_date).sql()
+        == "SELECT CAST(TO_TIMESTAMP(0) AS DATE)"
+    )
+
 
 def test_to_decimal() -> None:
     assert (
