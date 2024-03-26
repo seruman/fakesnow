@@ -525,6 +525,15 @@ def test_to_timestamp() -> None:
         == "SELECT CAST(TO_TIMESTAMP(col) AS TIMESTAMP) FROM table"
     )
 
+    assert (
+        sqlglot.parse_one(
+            "SELECT to_timestamp(case when condition then utc_timestamp end) from table", read="snowflake"
+        )
+        .transform(to_timestamp)
+        .sql(dialect="duckdb")
+        == "SELECT CAST(TO_TIMESTAMP(CASE WHEN condition THEN utc_timestamp END) AS TIMESTAMP) FROM table"
+    )
+
 
 def test_current_timestamp() -> None:
     assert (
