@@ -732,6 +732,16 @@ def test_object_construct(cur: snowflake.connector.cursor.SnowflakeCursor):
     assert strip_none_values(json.loads(result[0])) == json.loads('{\n  "a": 1,\n  "b": "BBBB"\n}')
 
 
+def test_object_construct_with_zeroifnull(cur: snowflake.connector.cursor.SnowflakeCursor):
+    cur.execute(
+        "SELECT 10 as col, OBJECT_CONSTRUCT( 'k1', 'v1', 'k2', CASE WHEN ZEROIFNULL(col) + 30 > 0 THEN 'v2' ELSE NULL END, NULL, 'nullkeyed', 'nullvalued', NULL)"
+    )
+
+    result = cur.fetchone()
+    assert isinstance(result, tuple)
+    assert json.loads(result[1]) == json.loads('{\n  "k1": "v1",\n  "k2": "v2"\n}')
+
+
 def test_percentile_cont(conn: snowflake.connector.SnowflakeConnection):
     *_, cur = conn.execute_string(
         """

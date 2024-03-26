@@ -332,6 +332,33 @@ def test_object_construct() -> None:
         == "SELECT TO_JSON({'a': 1, 'b': 'BBBB', 'd': JSON('NULL')})"
     )
 
+    assert (
+        sqlglot.parse_one(
+            "SELECT OBJECT_CONSTRUCT('a',1,'b','BBBB','c',null,'d',PARSE_JSON('NULL'), null, 'foo')",
+            read="snowflake",
+        )
+        .transform(object_construct)
+        .sql(dialect="duckdb")
+        == "SELECT TO_JSON({'a': 1, 'b': 'BBBB', 'd': JSON('NULL')})"
+    )
+
+    assert (
+        sqlglot.parse_one(
+            """
+        SELECT
+        OBJECT_CONSTRUCT(
+            'k1', 'v1',
+            'k2', CASE WHEN ZEROIFNULL(col) + 30 > 0 THEN 'v2' ELSE NULL END,
+            NULL, 'nullkeyed',
+            'nullvalued', NULL
+        )""",
+            read="snowflake",
+        )
+        .transform(object_construct)
+        .sql(dialect="duckdb")
+        == "SELECT TO_JSON({'k1': 'v1', 'k2': CASE WHEN CASE WHEN col IS NULL THEN 0 ELSE col END + 30 > 0 THEN 'v2' ELSE NULL END})"  # noqa: E501
+    )
+
 
 def test_parse_json() -> None:
     assert (
