@@ -1049,6 +1049,22 @@ def test_to_decimal(cur: snowflake.connector.cursor.SnowflakeCursor):
     ]
 
 
+def test_trim_cast_varchar(cur: snowflake.connector.cursor.SnowflakeCursor):
+    cur.execute("create or replace table trim_cast_varchar(id number, name varchar);")
+    cur.execute("insert into trim_cast_varchar(id, name) values (1, '  name 1  '), (2, 'name2   ');")
+    cur.execute("select trim(id), trim(name) from trim_cast_varchar;")
+
+    assert cur.fetchall() == [("1", "name 1"), ("2", "name2")]
+
+
+def test_trim_cast_varchar_variant_field(cur: snowflake.connector.cursor.SnowflakeCursor):
+    cur.execute("create or replace table trim_cast_varchar_variant_field(data variant);")
+    cur.execute("""insert into trim_cast_varchar_variant_field(data) values ('{"k1": "   v11  "}'),('{"k1": 21}');""")
+    cur.execute("select trim(data:k1) from trim_cast_varchar_variant_field;")
+
+    assert cur.fetchall() == [("v11",), ("21",)]
+
+
 def test_transactions(conn: snowflake.connector.SnowflakeConnection):
     # test behaviours required for sqlalchemy
 
