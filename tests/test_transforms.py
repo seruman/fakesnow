@@ -26,6 +26,7 @@ from fakesnow.transforms import (
     integer_precision,
     json_extract_cased_as_varchar,
     json_extract_cast_as_varchar,
+    json_extract_eq_in_literal_string_cast_varchar,
     json_extract_precedence,
     object_construct,
     parse_json,
@@ -731,4 +732,117 @@ def test_trim_cast_varchar() -> None:
     assert (
         sqlglot.parse_one("SELECT TRIM(col::text) FROM table1").transform(trim_cast_varchar).sql(dialect="duckdb")
         == "SELECT TRIM(CAST(col AS TEXT)) FROM table1"
+    )
+
+def test_json_extract_eq_in_literal_string_cast_varchar() -> None:
+    assert (
+        sqlglot.parse_one(
+            "SELECT col.data:field = 'value'",
+            read="snowflake",
+        )
+        .transform(json_extract_eq_in_literal_string_cast_varchar)
+        .sql(dialect="duckdb")
+        == "SELECT (col.data ->> '$.field') = 'value'"
+    ), "1"
+
+    assert (
+        sqlglot.parse_one(
+            "SELECT col.data:field = somecol",
+            read="snowflake",
+        )
+        .transform(json_extract_eq_in_literal_string_cast_varchar)
+        .sql(dialect="duckdb")
+        == "SELECT col.data -> '$.field' = somecol"
+    ), "1"
+
+    assert (
+        sqlglot.parse_one(
+            "SELECT col.data:field = 5",
+            read="snowflake",
+        )
+        .transform(json_extract_eq_in_literal_string_cast_varchar)
+        .sql(dialect="duckdb")
+        == "SELECT col.data -> '$.field' = 5"
+    ), "1"
+
+    assert (
+        sqlglot.parse_one(
+            "SELECT 'value' = col.data:field",
+            read="snowflake",
+        )
+        .transform(json_extract_eq_in_literal_string_cast_varchar)
+        .sql(dialect="duckdb")
+        == "SELECT 'value' = (col.data ->> '$.field')"
+    ), "2"
+
+    assert (
+        sqlglot.parse_one(
+            "SELECT (col.data:field) = ('value')",
+            read="snowflake",
+        )
+        .transform(json_extract_eq_in_literal_string_cast_varchar)
+        .sql(dialect="duckdb")
+        == "SELECT ((col.data ->> '$.field')) = ('value')"
+    ), "3"
+
+    assert (
+        sqlglot.parse_one(
+            "SELECT ('value') = (col.data:field)",
+            read="snowflake",
+        )
+        .transform(json_extract_eq_in_literal_string_cast_varchar)
+        .sql(dialect="duckdb")
+        == "SELECT ('value') = ((col.data ->> '$.field'))"
+    ), "4"
+
+    assert (
+        sqlglot.parse_one(
+            "SELECT col.data:field::varchar = 'value'",
+            read="snowflake",
+        )
+        .transform(json_extract_eq_in_literal_string_cast_varchar)
+        .sql(dialect="duckdb")
+        # Noop
+        == "SELECT CAST(col.data -> '$.field' AS TEXT) = 'value'"
+    ), "5"
+
+    assert (
+        sqlglot.parse_one(
+            "SELECT col.data:field::varchar = 'value'",
+            read="snowflake",
+        )
+        .transform(json_extract_cast_as_varchar)
+        .transform(json_extract_eq_in_literal_string_cast_varchar)
+        .transform(json_extract_cast_as_varchar)
+        .transform(json_extract_precedence)
+        .sql(dialect="duckdb")
+        == "SELECT col.data ->> '$.field' = 'value'"
+    ), "6"
+
+    assert (
+        sqlglot.parse_one("data:value = 'foo' AND data:stuff in ('other')", read="snowflake")
+        .transform(json_extract_eq_in_literal_string_cast_varchar)
+        .sql(dialect="duckdb")
+        == "((data ->> '$.value') = 'foo') AND (data ->> '$.stuff' IN ('other'))"
+    )
+
+    assert (
+        sqlglot.parse_one("data:value = 'foo' OR data:stuff in ('other')", read="snowflake")
+        .transform(json_extract_eq_in_literal_string_cast_varchar)
+        .sql(dialect="duckdb")
+        == "((data ->> '$.value') = 'foo') OR (data ->> '$.stuff' IN ('other'))"
+    )
+
+    assert (
+        sqlglot.parse_one("'foo' = data:value AND data:stuff in ('other')", read="snowflake")
+        .transform(json_extract_eq_in_literal_string_cast_varchar)
+        .sql(dialect="duckdb")
+        == "('foo' = (data ->> '$.value')) AND (data ->> '$.stuff' IN ('other'))"
+    )
+
+    assert (
+        sqlglot.parse_one("'foo' = data:value OR data:stuff in ('other')", read="snowflake")
+        .transform(json_extract_eq_in_literal_string_cast_varchar)
+        .sql(dialect="duckdb")
+        == "('foo' = (data ->> '$.value')) OR (data ->> '$.stuff' IN ('other'))"
     )

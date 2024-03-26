@@ -462,6 +462,100 @@ def json_extract_precedence(expression: exp.Expression) -> exp.Expression:
     return expression
 
 
+def json_extract_eq_in_literal_string_cast_varchar(expression: exp.Expression) -> exp.Expression:
+    """
+    Snowflake casts value of semi structured access to string implicitly if
+    it's an operand in an _equality_ or _IN_ expression against a _literal_
+    string/strings.
+
+    DuckDB tries to cast literal string to JSON;
+        SELECT TO_JSON({'K': 10}) AS D, ( D -> '$.k') = 'SomeString' AS EQ, ( D -> '$.k') IN ('SomeString') AS INN
+            Error: Conversion Error: Malformed JSON at byte 0 of input: unexpected character.  Input: SomeString
+
+    Snowflake;
+        SELECT {'k': 'SomeString'} AS d, d:k = 'SomeString' as eq, d:k IN ('SomeString') AS INN;
+            D: {"k": 'SomeString'}
+            EQ: TRUE
+            INN: TRUE
+
+
+    Snowflake;
+        data:value = 'foo'
+        data:value IN ('foo', 'bar')
+
+    DuckDB;
+        (data ->> '$.value') = 'foo'
+        data ->> '$.value' IN ('foo', 'bar')
+
+    """
+
+    def unwrap_paren(expression: exp.Expression) -> tuple[exp.Expression, bool]:
+        if isinstance(expression, exp.Paren):
+            r, _ = unwrap_paren(expression.this)
+            return r, True
+
+        return expression, False
+
+    def is_json_extract(expression: exp.Expression) -> bool:
+        return (
+            isinstance(expression, exp.JSONExtract)
+            and (je := expression)
+            and (path := je.expression)
+            and isinstance(path, exp.JSONPath)
+        )
+
+    def to_json_extract_scalar(expression: exp.JSONExtract) -> exp.Expression:
+        return exp.JSONExtractScalar(this=expression.this, expression=expression.expression)
+
+    if isinstance(expression, exp.EQ):
+        left = expression.left
+        right = expression.right
+
+        left_unwrapped, left_had_paren = unwrap_paren(left)
+        right_unwrapped, right_had_paren = unwrap_paren(right)
+        if is_json_extract(left_unwrapped) and isinstance(right_unwrapped, exp.Literal) and right_unwrapped.is_string:
+            json_extract_scalar = exp.Paren(this=to_json_extract_scalar(cast(exp.JSONExtract, left_unwrapped)))
+            extract = exp.Paren(this=json_extract_scalar) if left_had_paren else json_extract_scalar
+            literal = exp.Paren(this=right_unwrapped) if right_had_paren else right_unwrapped
+
+            eq = exp.EQ(this=extract, expression=literal)
+            if expression.parent and isinstance(expression.parent, (exp.And, exp.Or)):
+                return exp.Paren(this=eq)
+
+            return eq
+
+        if is_json_extract(right_unwrapped) and isinstance(left_unwrapped, exp.Literal) and left_unwrapped.is_string:
+            json_extract_scalar = exp.Paren(this=to_json_extract_scalar(cast(exp.JSONExtract, right_unwrapped)))
+            extract = exp.Paren(this=json_extract_scalar) if right_had_paren else json_extract_scalar
+            literal = exp.Paren(this=left_unwrapped) if left_had_paren else left_unwrapped
+
+            eq = exp.EQ(this=literal, expression=extract)
+            # If parent is AND or OR, wrap in parenthesis to avoid precedence issues.
+            if expression.parent and isinstance(expression.parent, (exp.And, exp.Or)):
+                return exp.Paren(this=eq)
+
+            return eq
+
+        return expression
+
+    if not isinstance(expression, exp.In):
+        return expression
+
+    # if left is json extract and right is a list of string literals
+    left_unwrapped, had_parens = unwrap_paren(expression.this)
+    if is_json_extract(left_unwrapped) and all(
+        isinstance(e, exp.Literal) and e.is_string for e in (expression.expressions)
+    ):
+        json_extract_scalar = to_json_extract_scalar(cast(exp.JSONExtract, left_unwrapped))
+        extract = exp.Paren(this=json_extract_scalar) if had_parens else json_extract_scalar
+
+        inn = exp.In(this=extract, expressions=expression.expressions)
+        # If parent is AND or OR, wrap in parenthesis to avoid precedence issues.
+        if expression.parent and isinstance(expression.parent, (exp.And, exp.Or)):
+            return exp.Paren(this=inn)
+        return inn
+
+    return expression
 def trim_json_extract(expression: exp.Expression) -> exp.Expression:
     """Return raw unquoted string when trimming json extraction.
 

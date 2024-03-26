@@ -178,6 +178,7 @@ class FakeSnowflakeCursor:
             .transform(transforms.try_parse_json)
             # indices_to_json_extract must be before regex_substr
             .transform(transforms.indices_to_json_extract)
+            .transform(transforms.json_extract_eq_in_literal_string_cast_varchar)
             .transform(transforms.json_extract_cast_as_varchar)
             .transform(transforms.json_extract_cased_as_varchar)
             .transform(transforms.json_extract_precedence)
