@@ -209,6 +209,7 @@ class FakeSnowflakeCursor:
             .transform(transforms.dateadd_literal_date_cast)
             .transform(transforms.dateadd_literal_date_string)
             .transform(transforms.datediff_literal_cast)
+            .transform(transforms.to_variant)
             .transform(lambda e: transforms.show_schemas(e, self._conn.database))
             .transform(lambda e: transforms.show_objects_tables(e, self._conn.database))
             .transform(lambda e: transforms.show_primary_keys(e, self._conn.database))

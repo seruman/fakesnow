@@ -734,6 +734,29 @@ def test_trim_cast_varchar() -> None:
         == "SELECT TRIM(CAST(col AS TEXT)) FROM table1"
     )
 
+
+def test_to_variant() -> None:
+    assert (
+        sqlglot.parse_one(
+            "SELECT TO_VARIANT(OBJECT_CONSTRUCT('a',1,'b','BBBB','c',null))",
+            read="snowflake",
+        )
+        .transform(to_variant)
+        .sql(dialect="duckdb")
+        == "SELECT TO_JSON({'a': 1, 'b': 'BBBB', 'c': NULL})"
+    )
+
+    assert (
+        sqlglot.parse_one(
+            "SELECT TO_VARIANT('str')",
+            read="snowflake",
+        )
+        .transform(to_variant)
+        .sql(dialect="duckdb")
+        == "SELECT TO_JSON('str')"
+    )
+
+
 def test_json_extract_eq_in_literal_string_cast_varchar() -> None:
     assert (
         sqlglot.parse_one(

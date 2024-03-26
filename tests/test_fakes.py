@@ -1065,6 +1065,28 @@ def test_trim_cast_varchar_variant_field(cur: snowflake.connector.cursor.Snowfla
     assert cur.fetchall() == [("v11",), ("21",)]
 
 
+def test_to_variant(cur: snowflake.connector.cursor.SnowflakeCursor):
+    cur.execute("create or replace table to_variant(id number, name varchar);")
+    cur.execute("insert into to_variant(id, name) values (1, 'name 1'), (2, 'name 2');")
+    cur.execute("select to_variant(object_construct('id', id, 'name', name)) from to_variant;")
+
+    assert cur.fetchall() == [
+        ('{"id":1,"name":"name 1"}',),
+        ('{"id":2,"name":"name 2"}',),
+    ]
+
+def test_to_variant_primitive(cur: snowflake.connector.cursor.SnowflakeCursor):
+    cur.execute("create or replace table to_variant(id number, name varchar);")
+    cur.execute("insert into to_variant(id, name) values (1, 'name 1'), (2, 'name 2');")
+    cur.execute("select to_variant(id), to_variant(name) from to_variant;")
+
+    assert cur.fetchall() == [
+        # TODO(selman): On DuckDB, `TO_JSON(<str>)` returns string with quotes,
+        # but on Snowflake it returns string without quotes.
+        ('1', '"name 1"'),
+        ('2', '"name 2"'),
+    ]
+
 def test_transactions(conn: snowflake.connector.SnowflakeConnection):
     # test behaviours required for sqlalchemy
 
