@@ -478,6 +478,11 @@ class FakeSnowflakeCursor:
                 return ResultMetadata(
                     name=column_name, type_code=5, display_size=None, internal_size=None, precision=None, scale=None, is_nullable=True               # noqa: E501
                 )
+            elif column_type == "VARCHAR[]":
+                # TODO(selman): Does not resolve https://github.com/tekumara/fakesnow/issues/26
+                return ResultMetadata(
+                    name=column_name, type_code=10 ,display_size=None, internal_size=None, precision=None, scale=None, is_nullable=True               # noqa: E501
+                )
             else:
                 # TODO handle more types
                 raise NotImplementedError(f"for column type {column_type}")
