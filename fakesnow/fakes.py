@@ -231,13 +231,9 @@ class FakeSnowflakeCursor:
             sql = f"SELECT setseed({seed}); {sql}"
 
         if fs_debug := os.environ.get("FAKESNOW_DEBUG"):
-            if fs_debug == "snowflake":
-                print(f"{command};{params=}" if params else f"{command};", file=sys.stderr)
-            elif fs_debug == "duckdb":
-                print(f"{sql};{params=}" if params else f"{sql};", file=sys.stderr)
-            elif fs_debug == "both":
-                print(f"duckdb: {sql};{params=}" if params else f"duckdb: {sql};", file=sys.stderr)
-                print(f"snowflake: {command};{params=}" if params else f"snowflake: {command};", file=sys.stderr)
+            debug = command if fs_debug == "snowflake" else sql
+            print(f"{debug};{params=}" if params else f"{debug};", file=sys.stderr)
+
         try:
             self._duck_conn.execute(sql, params)
         except duckdb.BinderException as e:
