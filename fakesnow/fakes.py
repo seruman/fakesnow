@@ -112,7 +112,15 @@ class FakeSnowflakeCursor:
     def description(self) -> list[ResultMetadata]:
         # use a separate cursor to avoid consuming the result set on this cursor
         with self._conn.cursor() as cur:
-            cur.execute(f"DESCRIBE {self._last_sql}", self._last_params)
+            # TODO(selman): This is a quick fix/hack;
+            # On a query like;
+            #   SELECT DATEDIFF( DAY, '2023-04-02'::DATE, '2023-04-05'::DATE)
+            # calling `cursor.description` runs;
+            #    DESCRIBE SELECT DATE_DIFF('CAST('2023-04-05' AS DATE)', CAST('2023-04-02' AS DATE), 'DAY')
+            # as cursor.execute reads the query in Snowflake dialect, it transpiles into;
+            #   DESCRIBE SELECT DATE_DIFF('CAST('2023-04-05' AS DATE)', CAST('2023-04-02' AS DATE), 'DAY')
+            # TLDR; Query gets double transpiled, and it fails.
+            cur.execute(f"DESCRIBE {self._last_sql}", self._last_params, _describe_only=True)
             meta = FakeSnowflakeCursor._describe_as_result_metadata(cur.fetchall())
 
         return meta
@@ -135,6 +143,7 @@ class FakeSnowflakeCursor:
         self,
         command: str,
         params: Sequence[Any] | dict[Any, Any] | None = None,
+        _describe_only: bool = False,
         *args: Any,
         **kwargs: Any,
     ) -> FakeSnowflakeCursor:
@@ -235,7 +244,8 @@ class FakeSnowflakeCursor:
             print(f"{debug};{params=}" if params else f"{debug};", file=sys.stderr)
 
         try:
-            self._duck_conn.execute(sql, params)
+            q = sql if not _describe_only else command
+            self._duck_conn.execute(q, params)
         except duckdb.BinderException as e:
             msg = e.args[0]
             raise snowflake.connector.errors.ProgrammingError(msg=msg, errno=2043, sqlstate="02000") from None
