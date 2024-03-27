@@ -210,9 +210,8 @@ class FakeSnowflakeCursor:
             # create table some_table as (
             #   select
             #     r1 as c1,
-            #     cast(
-            #       cast(c1 as TEXT) || '-' || cast(c2 as TEXT) as TEXT
-            #     ) as key_id
+            #     cast(cast(c1 as TEXT) || '-' || cast(c2 as TEXT) as TEXT) as key_id
+            #     cast(c1 as TEXT) || '-' || cast(c2 as TEXT) as other_key_id
             #   from
             #     raw_data
             # )
