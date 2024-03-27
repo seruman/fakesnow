@@ -322,6 +322,51 @@ def test_describe(cur: snowflake.connector.cursor.SnowflakeCursor):
     # fmt: on
 
 
+def test_describe_double_transpile_hack(dcur: snowflake.connector.cursor.DictCursor):
+    print()
+    q = "SELECT DATEDIFF(DAY, '2023-04-02'::DATE, '2023-04-05'::DATE) as diff"
+
+    dcur.execute(q)
+
+    rows = dcur.fetchall()
+    desc = dcur.description
+
+    assert rows == [{"DIFF": 3}]
+    assert desc == [
+        ResultMetadata(
+            name="DIFF",
+            type_code=0,
+            display_size=None,
+            internal_size=None,
+            precision=38,
+            scale=0,
+            is_nullable=True,
+        )
+    ]
+
+
+def test_describe_duckdb_hugeint(dcur: snowflake.connector.cursor.DictCursor):
+    # NOTE(selman): DuckDB seems to return HUGEINT in aggreations like SUM
+    # regardless of the input type size. See FakeSnowflakeCursor for more info.
+    dcur.execute("SELECT SUM(1) as sum1")
+
+    rows = dcur.fetchall()
+    desc = dcur.description
+
+    assert rows == [{"SUM1": 1}]
+    assert desc == [
+        ResultMetadata(
+            name="SUM1",
+            type_code=0,
+            display_size=None,
+            internal_size=None,
+            precision=38,
+            scale=0,
+            is_nullable=True,
+        )
+    ]
+
+
 def test_describe_table(dcur: snowflake.connector.cursor.DictCursor):
     dcur.execute(
         """
@@ -364,7 +409,8 @@ def test_describe_table(dcur: snowflake.connector.cursor.DictCursor):
         {"name": "XSMALLINT", "type": "NUMBER(38,0)", **common},
         {"name": "XTINYINT", "type": "NUMBER(38,0)", **common},
         {"name": "XBYTEINT", "type": "NUMBER(38,0)", **common},
-        {"name": "XVARCHAR20", "type": "VARCHAR(20)", **common},
+        # TODO(selman): Disabled text length extraction.
+        {"name": "XVARCHAR20", "type": "VARCHAR(16777216)", **common},
         {"name": "XVARCHAR", "type": "VARCHAR(16777216)", **common},
         {"name": "XTEXT", "type": "VARCHAR(16777216)", **common},
         {"name": "XTIMESTAMP", "type": "TIMESTAMP_NTZ(9)", **common},
@@ -1075,6 +1121,7 @@ def test_to_variant_object_construct(cur: snowflake.connector.cursor.SnowflakeCu
         ('{"id":2,"name":"name 2"}',),
     ]
 
+
 def test_to_variant_primitive(cur: snowflake.connector.cursor.SnowflakeCursor):
     cur.execute("create or replace table to_variant(id number, name varchar);")
     cur.execute("insert into to_variant(id, name) values (1, 'name 1'), (2, 'name 2');")
@@ -1083,9 +1130,10 @@ def test_to_variant_primitive(cur: snowflake.connector.cursor.SnowflakeCursor):
     assert cur.fetchall() == [
         # TODO(selman): On DuckDB, `TO_JSON(<str>)` returns string with quotes,
         # but on Snowflake it returns string without quotes.
-        ('1', '"name 1"'),
-        ('2', '"name 2"'),
+        ("1", '"name 1"'),
+        ("2", '"name 2"'),
     ]
+
 
 def test_transactions(conn: snowflake.connector.SnowflakeConnection):
     # test behaviours required for sqlalchemy

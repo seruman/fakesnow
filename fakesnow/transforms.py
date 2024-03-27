@@ -557,6 +557,7 @@ def json_extract_eq_in_literal_string_cast_varchar(expression: exp.Expression) -
 
     return expression
 
+
 def trim_cast_varchar(expression: exp.Expression) -> exp.Expression:
     """Snowflake's TRIM casts input to VARCHAR implicitly."""
 
