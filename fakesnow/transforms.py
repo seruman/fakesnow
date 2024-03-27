@@ -661,57 +661,6 @@ def to_variant(expression: exp.Expression) -> exp.Expression:
     return expression
 
 
-# TODO(selman): sqlglot -21.1.0,21.1.2- seems to produce expected result without this
-# transformation;
-# SELECT PARSE_JSON('{}')
-#
-# Without transformation:
-#   Select(
-#       expressions=[
-#           ParseJSON(
-#               this=Column(
-#                   this=Identifier(this={}, quoted=True)
-#               )
-#           )
-#       ]
-#   )
-#
-# With transformation:
-#   Select(
-#       expressions=[
-#           ParseJSON(
-#               this=Column(
-#                   this=Identifier(this={}, quoted=True)
-#               )
-#           )
-#       ]
-#   )
-def parse_json(expression: exp.Expression) -> exp.Expression:
-    """Convert parse_json() to json().
-
-    Example:
-        >>> import sqlglot
-        >>> sqlglot.parse_one("insert into table1 (name) select parse_json('{}')").transform(parse_json).sql()
-        "CREATE TABLE table1 (name JSON)"
-    Args:
-        expression (exp.Expression): the expression that will be transformed.
-
-    Returns:
-        exp.Expression: The transformed expression.
-    """
-
-    if (
-        isinstance(expression, exp.Anonymous)
-        and isinstance(expression.this, str)
-        and expression.this.upper() == "PARSE_JSON"
-    ):
-        new = expression.copy()
-        new.args["this"] = "JSON"
-        return new
-
-    return expression
-
-
 def try_parse_json(expression: exp.Expression) -> exp.Expression:
     """Convert tr_parse_json() to try_cast(... as JSON).
 

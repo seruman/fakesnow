@@ -182,8 +182,6 @@ class FakeSnowflakeCursor:
             .transform(transforms.drop_schema_cascade)
             .transform(transforms.tag)
             .transform(transforms.semi_structured_types)
-            # TODO(selman): noop
-            .transform(transforms.parse_json)
             .transform(transforms.try_parse_json)
             # indices_to_json_extract must be before regex_substr
             .transform(transforms.indices_to_json_extract)

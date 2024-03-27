@@ -29,7 +29,6 @@ from fakesnow.transforms import (
     json_extract_eq_in_literal_string_cast_varchar,
     json_extract_precedence,
     object_construct,
-    parse_json,
     random,
     regex_replace,
     regex_substr,
@@ -323,16 +322,6 @@ def test_object_construct() -> None:
     )
 
 
-def test_parse_json() -> None:
-    assert (
-        sqlglot.parse_one("""insert into table1 (name) select parse_json('{"first":"foo", "last":"bar"}')""")
-        # TODO(selman): Noop
-        .transform(parse_json)
-        .sql(dialect="duckdb")
-        == """INSERT INTO table1 (name) SELECT JSON('{"first":"foo", "last":"bar"}')"""
-    )
-
-
 def test_try_parse_json() -> None:
     assert (
         sqlglot.parse_one("""insert into table1 (name) select try_parse_json('{"first":"foo", "last":"bar"}')""")
@@ -581,7 +570,6 @@ def test_values_columns() -> None:
 
 
 def test_timeadd() -> None:
-    # TODO(selman)::
     assert (
         sqlglot.parse_one("SELECT timeadd(hour, 3, col)", read="snowflake").transform(timeadd).sql(dialect="duckdb")
         == "SELECT col + INTERVAL 3 HOUR"
