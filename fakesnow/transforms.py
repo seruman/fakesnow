@@ -1012,6 +1012,18 @@ def to_decimal(expression: exp.Expression) -> exp.Expression:
             to=exp.DataType(this=exp.DataType.Type.DECIMAL, expressions=[precision, scale], nested=False, prefix=False),
         )
 
+    # NOTE(selman): Somewhere between 21.2.0 and 22.4.0 sqlglot started to
+    # return ToNumber node instead of Anonymous. But it does not generate
+    # NUMBER(precision,scale) query.
+    if isinstance(expression, exp.ToNumber):
+        precision = expression.args.get("format", exp.Literal(this="38", is_string=False))
+        scale = expression.args.get("precision", exp.Literal(this="0", is_string=False))
+
+        return exp.Cast(
+            this=expression.this,
+            to=exp.DataType(this=exp.DataType.Type.DECIMAL, expressions=[precision, scale], nested=False, prefix=False),
+        )
+
     return expression
 
 
