@@ -624,12 +624,17 @@ def object_construct(expression: exp.Expression) -> exp.Expression:
     if isinstance(expression, exp.Struct):
         non_null_expressions = []
         for e in expression.expressions:
-            if (
-                isinstance(e, exp.EQ)
-                and (left := e.left)
-                and (right := e.right)
-                and (isinstance(left, exp.Null) or isinstance(right, exp.Null))
-            ):
+            if not (isinstance(e, exp.PropertyEQ)):
+                non_null_expressions.append(e)
+                continue
+
+            left = e.left
+            right = e.right
+
+            left_is_null = isinstance(left, exp.Null)
+            right_is_null = isinstance(right, exp.Null)
+
+            if left_is_null or right_is_null:
                 continue
 
             non_null_expressions.append(e)
