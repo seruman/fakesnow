@@ -17,8 +17,8 @@ dependencies = [
     #       https://github.com/tobymao/sqlglot/commit/c51b64fa6a437698fd8b347d98ffaf9fb543d2d5
     #
     #   array_join fixes;
-    #   https://github.com/tobymao/sqlglot/pull/3102
-    #   https://github.com/tobymao/sqlglot/pull/3120
+    #   https://github.com/tobymao/sqlglot/commit/ddab9dff663985d9473ce4b2dbe4fe266ae1bdf7
+    #   https://github.com/tobymao/sqlglot/commit/c333017fe49c0645cdaa3a75d0a7cc6a5b46dddc
     "sqlglot==22.4.0",
 ]
 
