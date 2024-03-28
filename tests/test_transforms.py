@@ -610,7 +610,7 @@ def test_timeadd() -> None:
         .transform(timeadd)
         .transform(dateadd_literal_date_string)
         .sql(dialect="duckdb")
-        == "SELECT CAST('2023-01-01' AS DATE) + INTERVAL 3 HOUR"
+        == "SELECT CAST('2023-01-01' AS TIMESTAMP) + INTERVAL 3 HOUR"
     )
 
 
@@ -655,7 +655,7 @@ def test_dateadd_literal_date_string() -> None:
         sqlglot.parse_one("SELECT DATEADD(DAY, 3, '2023-03-03') as D", read="snowflake")
         .transform(dateadd_literal_date_string)
         .sql(dialect="duckdb")
-        == "SELECT CAST('2023-03-03' AS DATE) + INTERVAL 3 DAY AS D"
+        == "SELECT CAST('2023-03-03' AS TIMESTAMP) + INTERVAL 3 DAY AS D"
     )
 
 

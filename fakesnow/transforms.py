@@ -1330,7 +1330,7 @@ def dateadd_literal_date_string(expression: exp.Expression) -> exp.Expression:
         "this",
         exp.Cast(
             this=literal,
-            to=exp.DataType(this=exp.DataType.Type.DATE, nested=False, prefix=False),
+            to=exp.DataType(this=exp.DataType.Type.TIMESTAMP, nested=False, prefix=False),
         ),
     )
 
